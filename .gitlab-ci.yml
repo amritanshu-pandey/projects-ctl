@@ -3,13 +3,6 @@ stages:
   - build 
   - deploy
 #
-lint:
-  image: rust:1.23.0
-  stage: test
-  script:
-    - rustup component add rustfmt-preview
-    - cargo fmt -- --error-on-unformatted --unstable-features
-#
 install:
   image: rust:1.23.0
   stage: build

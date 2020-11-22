@@ -7,7 +7,7 @@ lint:
   image: rust:1.23.0
   stage: test
   script:
-    - rustup component add --toolchain default rustfmt-preview
+    - rustup component add rustfmt-preview
     - cargo fmt -- --error-on-unformatted --unstable-features
 #
 install:

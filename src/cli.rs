@@ -22,6 +22,8 @@ pub enum Subcommands {
         remote_url: Option<String>,
         #[structopt(long, default_value = "origin")]
         remote_name: String,
+        #[structopt(long)]
+        name: Option<String>,
     },
     Remove {
         #[structopt(long)]
@@ -32,6 +34,9 @@ pub enum Subcommands {
         repositories: bool,
         #[structopt(long)]
         wide: bool,
+    },
+    Cd {
+        repository: String,
     },
 }
 

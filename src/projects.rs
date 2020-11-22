@@ -2,12 +2,16 @@ use crate::config::{read_config_file, write_config_file};
 use git2::Repository;
 use prettytable::{cell, format, row, Table};
 use serde::{Deserialize, Serialize};
+use std::collections::hash_map::DefaultHasher;
 use std::fs;
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Project {
     pub path: String,
     pub git_remote: Option<String>,
+    pub name: Option<String>,
+    pub id: u64,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -37,28 +41,41 @@ pub fn find_project(path: String) -> bool {
     false
 }
 
-pub fn add_project(name: &str, remote_url: Option<String>, remote_name: String) {
+fn find_hash(name: String) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    name.hash(&mut hasher);
+    hasher.finish() / 1000000000000000
+}
+
+pub fn add_project(
+    path: &str,
+    remote_url: Option<String>,
+    remote_name: String,
+    name: Option<String>,
+) {
     let mut projects = get_all_projects();
     let mut remote_url = remote_url;
 
     match remote_url {
         Some(..) => {}
         None => {
-            remote_url = match Repository::open(name) {
+            remote_url = match Repository::open(path) {
                 Ok(..) => {
-                    Some(find_git_remote(name, remote_name).expect("Unable to find git remote"))
+                    Some(find_git_remote(path, remote_name).expect("Unable to find git remote"))
                 }
                 Err(..) => None,
             };
         }
     }
 
-    if find_project(name.to_string()) {
+    if find_project(path.to_string()) {
         println!("Project already added 🙏")
     } else {
         let project: Project = Project {
-            path: name.to_string(),
+            path: path.to_string(),
             git_remote: remote_url,
+            name: name,
+            id: find_hash(path.to_string()),
         };
         projects.push(project);
         let projects = Projects { projects: projects };
@@ -67,7 +84,7 @@ pub fn add_project(name: &str, remote_url: Option<String>, remote_name: String) 
             Err(..) => panic!("Unable to get yaml string fot project config"),
         };
         write_config_file("projects.yaml", &content);
-        println!("Project added: {} ✔️", name);
+        println!("Project added: {} ✔️", path);
     }
 }
 
@@ -135,7 +152,6 @@ pub fn list_repositories() {
             check_if_git_enabled(&project.path),
             remote
         ));
-        // find_git_remote(&project.path, remote_name).expect("Unable to find git remote");
     }
 
     println!("\n");

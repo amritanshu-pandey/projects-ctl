@@ -19,10 +19,12 @@ fn main() {
             repository,
             remote_url,
             remote_name,
+            name,
         } => projects::add_project(
             &config::canonicalise_path(&repository),
             remote_url,
             remote_name,
+            name,
         ),
         cli::Subcommands::Remove { repository } => {
             projects::remove_project(&config::canonicalise_path(&repository))
@@ -36,5 +38,6 @@ fn main() {
                 }
             }
         }
+        cli::Subcommands::Cd { repository } => {}
     };
 }

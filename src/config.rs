@@ -7,7 +7,8 @@ use std::fs;
 use std::path::Path;
 
 pub fn canonicalise_path(path: &str) -> String {
-    let path = match fs::canonicalize(path) {
+    let expanded_dir: &str = &shellexpand::tilde(path);
+    let path = match fs::canonicalize(expanded_dir) {
         Ok(path) => path,
         Err(..) => panic!("Unable to canonicalise the path: {}", path),
     };

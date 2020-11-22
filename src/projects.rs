@@ -121,13 +121,19 @@ pub fn list_repositories() {
     table.set_titles(row!(
         "Path".to_string(),
         "Exists".to_string(),
-        "Git".to_string()
+        "Git".to_string(),
+        "Remote".to_string()
     ));
     for project in &get_all_projects() {
+        let remote = match &project.git_remote {
+            Some(remote) => remote,
+            None => "-",
+        };
         table.add_row(row!(
             project.path.to_string(),
             check_project_exists(&project.path),
-            check_if_git_enabled(&project.path)
+            check_if_git_enabled(&project.path),
+            remote
         ));
         // find_git_remote(&project.path, remote_name).expect("Unable to find git remote");
     }

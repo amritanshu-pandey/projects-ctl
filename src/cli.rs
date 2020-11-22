@@ -18,6 +18,10 @@ pub enum Subcommands {
     Add {
         #[structopt(long)]
         repository: String,
+        #[structopt(long)]
+        remote_url: Option<String>,
+        #[structopt(long, default_value = "origin")]
+        remote_name: String,
     },
     Remove {
         #[structopt(long)]

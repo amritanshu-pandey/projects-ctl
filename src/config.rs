@@ -3,27 +3,16 @@ use crate::cli::get_config_home;
 use crate::util;
 use log;
 extern crate path_absolutize;
-use path_absolutize::*;
 use std::fs;
 use std::path::Path;
 
 pub fn canonicalise_path(path: &str) -> String {
-    let p - Path
-    p.absolutize().unwrap().to_str().unwrap()
-    let path = match PathAbs::new(path) {
-        Ok(x) => x,
-        Err(..) => panic!("Unable to determine absolute path!"),
+    let path = match fs::canonicalize(path){
+        Ok(path) => path,
+        Err(..) => panic!("Unable to canonicalise the path: {}", path)
     };
 
-    let path = path.as_path();
-
-    let path_str = match path.to_str() {
-        Some(path) => path,
-        None => panic!("Unable to convert path to str"),
-    };
-    let expanded_dir: &str = &shellexpand::tilde(path_str);
-
-    expanded_dir.to_string()
+    path.to_str().expect("Unable to convert path to string").to_string()
 }
 
 pub fn ensure_config_dir_exist(directory: &str) -> std::io::Result<()> {

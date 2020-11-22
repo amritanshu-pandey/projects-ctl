@@ -5,11 +5,17 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Projects {
-    pub projects: Vec<String>,
+pub struct Project {
+    pub path: String,
+    pub git_remote: Option<String>,
 }
 
-pub fn get_all_projects() -> Vec<String> {
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Projects {
+    pub projects: Vec<Project>,
+}
+
+pub fn get_all_projects() -> Vec<Project> {
     let content = read_config_file("projects.yaml");
     let yaml_config: Projects = match serde_yaml::from_str(&content) {
         Ok(projects) => projects,
@@ -21,13 +27,40 @@ pub fn get_all_projects() -> Vec<String> {
     }
 }
 
-pub fn add_project(name: &str) {
-    let mut projects = get_all_projects();
+pub fn find_project(path: String) -> bool {
+    for project in get_all_projects() {
+        if project.path == path {
+            return true;
+        }
+    }
 
-    if projects.contains(&name.to_string()) {
+    false
+}
+
+pub fn add_project(name: &str, remote_url: Option<String>, remote_name: String) {
+    let mut projects = get_all_projects();
+    let mut remote_url = remote_url;
+
+    match remote_url {
+        Some(..) => {}
+        None => {
+            remote_url = match Repository::open(name) {
+                Ok(..) => {
+                    Some(find_git_remote(name, remote_name).expect("Unable to find git remote"))
+                }
+                Err(..) => None,
+            };
+        }
+    }
+
+    if find_project(name.to_string()) {
         println!("Project already added 🙏")
     } else {
-        projects.push(name.to_string());
+        let project: Project = Project {
+            path: name.to_string(),
+            git_remote: remote_url,
+        };
+        projects.push(project);
         let projects = Projects { projects: projects };
         let content = match serde_yaml::to_string(&projects) {
             Ok(content) => content,
@@ -41,8 +74,8 @@ pub fn add_project(name: &str) {
 pub fn remove_project(name: &str) {
     let mut projects = get_all_projects();
 
-    if projects.contains(&name.to_string()) {
-        projects.retain(|x| x != name);
+    if find_project(name.to_string()) {
+        projects.retain(|x| x.path != name);
         let projects = Projects { projects: projects };
         let content = match serde_yaml::to_string(&projects) {
             Ok(content) => content,
@@ -69,9 +102,22 @@ pub fn check_if_git_enabled(path: &str) -> String {
     }
 }
 
+pub fn find_git_remote(path: &str, remote_name: String) -> Option<String> {
+    let repo = match Repository::open(path) {
+        Ok(repo) => repo,
+        Err(..) => panic!("Not a git repo: {}", path),
+    };
+
+    let remote = repo
+        .find_remote(&remote_name)
+        .expect(&format!("Unable to find remote {}", remote_name));
+
+    Some(remote.url().expect("Unable to find remote URL").to_string())
+}
+
 pub fn list_repositories() {
     let mut table = Table::new();
-    table.set_format(*format::consts::FORMAT_BOX_CHARS);
+    table.set_format(*format::consts::FORMAT_NO_BORDER);
     table.set_titles(row!(
         "Path".to_string(),
         "Exists".to_string(),
@@ -79,11 +125,13 @@ pub fn list_repositories() {
     ));
     for project in &get_all_projects() {
         table.add_row(row!(
-            project.to_string(),
-            check_project_exists(project),
-            check_if_git_enabled(project)
+            project.path.to_string(),
+            check_project_exists(&project.path),
+            check_if_git_enabled(&project.path)
         ));
+        // find_git_remote(&project.path, remote_name).expect("Unable to find git remote");
     }
 
+    println!("\n");
     table.printstd();
 }

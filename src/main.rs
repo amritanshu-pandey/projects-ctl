@@ -15,9 +15,15 @@ fn main() {
     config::ensure_config_file_exist("projects.yaml").expect("Unable to create empty config file");
 
     match cli_subcommands {
-        cli::Subcommands::Add { repository } => {
-            projects::add_project(&config::canonicalise_path(&repository))
-        }
+        cli::Subcommands::Add {
+            repository,
+            remote_url,
+            remote_name,
+        } => projects::add_project(
+            &config::canonicalise_path(&repository),
+            remote_url,
+            remote_name,
+        ),
         cli::Subcommands::Remove { repository } => {
             projects::remove_project(&config::canonicalise_path(&repository))
         }

@@ -4,7 +4,7 @@ stages:
   - deploy
 #
 install:
-  image: rust:1.23.0
+  image: rust:latest
   stage: build
   script:
     - cargo build --release

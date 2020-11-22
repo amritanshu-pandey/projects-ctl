@@ -7,12 +7,14 @@ use std::fs;
 use std::path::Path;
 
 pub fn canonicalise_path(path: &str) -> String {
-    let path = match fs::canonicalize(path){
+    let path = match fs::canonicalize(path) {
         Ok(path) => path,
-        Err(..) => panic!("Unable to canonicalise the path: {}", path)
+        Err(..) => panic!("Unable to canonicalise the path: {}", path),
     };
 
-    path.to_str().expect("Unable to convert path to string").to_string()
+    path.to_str()
+        .expect("Unable to convert path to string")
+        .to_string()
 }
 
 pub fn ensure_config_dir_exist(directory: &str) -> std::io::Result<()> {

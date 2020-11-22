@@ -1,0 +1,19 @@
+stages:
+  - test
+  - build 
+  - deploy
+#
+lint:
+  image: rust:1.23.0
+  stage: test
+  script:
+    - cargo fmt -- --error-on-unformatted --unstable-features
+#
+install:
+  image: rust:1.23.0
+  stage: build
+  script:
+    - cargo build --release
+  artifacts:
+    paths:
+      - target/release/gitall

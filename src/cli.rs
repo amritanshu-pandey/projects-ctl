@@ -1,4 +1,3 @@
-use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 #[derive(Debug, PartialEq, StructOpt)]
@@ -23,6 +22,12 @@ pub enum Subcommands {
     Remove {
         #[structopt(long)]
         repository: String,
+    },
+    List {
+        #[structopt(long)]
+        repositories: bool,
+        #[structopt(long)]
+        wide: bool,
     },
 }
 

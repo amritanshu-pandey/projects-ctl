@@ -1,4 +1,3 @@
-use std::process::Command;
 mod cli;
 mod config;
 mod projects;
@@ -16,7 +15,20 @@ fn main() {
     config::ensure_config_file_exist("projects.yaml").expect("Unable to create empty config file");
 
     match cli_subcommands {
-        cli::Subcommands::Add { repository } => config::add_project(&repository),
-        cli::Subcommands::Remove { repository } => config::remove_project(&repository),
+        cli::Subcommands::Add { repository } => {
+            projects::add_project(&config::canonicalise_path(&repository))
+        }
+        cli::Subcommands::Remove { repository } => {
+            projects::remove_project(&config::canonicalise_path(&repository))
+        }
+        cli::Subcommands::List { repositories, wide } => {
+            if repositories {
+                if wide {
+                    projects::list_repositories();
+                } else {
+                    projects::list_repositories();
+                }
+            }
+        }
     };
 }

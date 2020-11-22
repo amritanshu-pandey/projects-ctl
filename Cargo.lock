@@ -238,21 +238,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gitall"
-version = "0.1.0"
-dependencies = [
- "env_logger",
- "git2",
- "log",
- "path-absolutize",
- "prettytable-rs",
- "serde",
- "serde_yaml",
- "shellexpand",
- "structopt",
-]
-
-[[package]]
 name = "heck"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -420,6 +405,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "path_abs"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb6b8e6dede0bf94e9300e669f335ba92d5fc9fc8be7f4b1ca8a05206489388c"
+dependencies = [
+ "serde",
+ "serde_derive",
+ "std_prelude",
+ "stfu8",
+]
+
+[[package]]
 name = "percent-encoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -476,6 +473,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e0704ee1a7e00d7bb417d0770ea303c1bccbabf0ef1667dae92b5967f5f8a71"
 dependencies = [
  "unicode-xid",
+]
+
+[[package]]
+name = "projectsctl"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "git2",
+ "log",
+ "path-absolutize",
+ "path_abs",
+ "prettytable-rs",
+ "serde",
+ "serde_yaml",
+ "shellexpand",
+ "structopt",
 ]
 
 [[package]]
@@ -595,6 +608,22 @@ name = "slash-formatter"
 version = "2.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f7fb98e76e2022054673f3ebc43a4e12890ec6272530629df6237cafbb70569"
+
+[[package]]
+name = "std_prelude"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8207e78455ffdf55661170876f88daf85356e4edd54e0a3dbc79586ca1e50cbe"
+
+[[package]]
+name = "stfu8"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4bf70433e3300a3c395d06606a700cdf4205f4f14dbae2c6833127c6bb22db77"
+dependencies = [
+ "lazy_static",
+ "regex",
+]
 
 [[package]]
 name = "structopt"

@@ -8,6 +8,23 @@ install:
   stage: build
   script:
     - cargo build --release
+    - ./target/release/projectsctl --help
   artifacts:
     paths:
-      - target/release/gitall
+      - target/release/projectsctl
+#
+publish-to-nexus:
+  image: ubuntu:latest
+  stage: deploy
+  script:
+    - apt update
+    - apt install curl -y
+    - CARGO_VERSION=$(grep -e "^version = " Cargo.toml | cut -f3 -d' ' | sed 's/"//g')
+    - if [[ ${CARGO_VERSION} = ${CI_COMMIT_TAG} ]];  then
+        curl -v -u $ARTEFACT_REPO_USER:$ARTEFACT_REPO_PASSWORD --upload-file target/release/projectsctl "${ARTEFACT_REPO_URL}/repository/raw/projectsctl/${CI_COMMIT_TAG}/" -k;
+      else
+        echo "GIT Tag ${CI_COMMIT_TAG} is not same as the version specified in 'Cargo.toml' i.e. '${CARGO_VERSION}'";
+        exit 1;
+      fi
+  only:
+    - tags

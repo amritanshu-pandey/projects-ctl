@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::fs;
 use std::hash::{Hash, Hasher};
+use std::process::Command;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Project {
@@ -41,6 +42,29 @@ pub fn find_project(path: String) -> bool {
     false
 }
 
+pub fn find_project_by_name(name: String) -> bool {
+    for project in get_all_projects() {
+        match project.name {
+            Some(proj_name) => {
+                if proj_name == name {
+                    return true;
+                }
+            }
+            None => {}
+        }
+    }
+    return false;
+}
+
+pub fn find_project_path_by_id(id: u64) -> Option<String> {
+    for project in get_all_projects() {
+        if project.id == id {
+            return Some(project.path);
+        }
+    }
+    return None;
+}
+
 fn find_hash(name: String) -> u64 {
     let mut hasher = DefaultHasher::new();
     name.hash(&mut hasher);
@@ -69,8 +93,18 @@ pub fn add_project(
     }
 
     if find_project(path.to_string()) {
-        println!("Project already added 🙏")
+        println!("Project with same path already added 🙏")
     } else {
+        match &name {
+            Some(proj_name) => {
+                if find_project_by_name(proj_name.to_string()) {
+                    println!("Project with same name already added 🙏");
+                    return ();
+                }
+            }
+            None => {}
+        };
+
         let project: Project = Project {
             path: path.to_string(),
             git_remote: remote_url,
@@ -136,7 +170,9 @@ pub fn list_repositories() {
     let mut table = Table::new();
     table.set_format(*format::consts::FORMAT_NO_BORDER);
     table.set_titles(row!(
+        "Id".to_string(),
         "Path".to_string(),
+        "Name".to_string(),
         "Exists".to_string(),
         "Git".to_string(),
         "Remote".to_string()
@@ -146,8 +182,14 @@ pub fn list_repositories() {
             Some(remote) => remote,
             None => "-",
         };
+        let name = match &project.name {
+            Some(name) => name,
+            None => "-",
+        };
         table.add_row(row!(
+            project.id,
             project.path.to_string(),
+            name,
             check_project_exists(&project.path),
             check_if_git_enabled(&project.path),
             remote
@@ -156,4 +198,19 @@ pub fn list_repositories() {
 
     println!("\n");
     table.printstd();
+}
+
+pub fn open(id: u64, ide: String) {
+    match find_project_path_by_id(id) {
+        Some(path) => {
+            Command::new(&ide)
+                .arg(&path)
+                .output()
+                .expect("failed to execute process");
+            println!("Opening project '{}' in program '{}' ✔️", path, ide);
+        }
+        None => {
+            println!("Project not found ❌");
+        }
+    }
 }

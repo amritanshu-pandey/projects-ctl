@@ -1,3 +1,4 @@
+use crate::config::canonicalise_path;
 use structopt::StructOpt;
 
 #[derive(Debug, PartialEq, StructOpt)]
@@ -35,8 +36,10 @@ pub enum Subcommands {
         #[structopt(long)]
         wide: bool,
     },
-    Cd {
-        repository: String,
+    Open {
+        id: u64,
+        #[structopt(long, env = "PROJECTS_CTL_IDE_PATH", default_value = "code")]
+        ide: String,
     },
 }
 
@@ -46,5 +49,5 @@ pub fn get_cli_args() -> Cli {
 }
 
 pub fn get_config_home() -> String {
-    get_cli_args().config_home
+    canonicalise_path(&get_cli_args().config_home)
 }

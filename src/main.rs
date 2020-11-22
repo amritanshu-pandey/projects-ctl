@@ -8,10 +8,9 @@ fn main() {
     let args = cli::get_cli_args();
     let cli_subcommands = args.commands;
 
-    config::ensure_config_dir_exist(&args.config_home).expect(&format!(
-        "Unable to create config home: {}",
-        &args.config_home
-    ));
+    config::ensure_config_dir_exist(&config::canonicalise_path(&args.config_home)).expect(
+        &format!("Unable to create config home: {}", &args.config_home),
+    );
     config::ensure_config_file_exist("projects.yaml").expect("Unable to create empty config file");
 
     match cli_subcommands {
@@ -38,6 +37,6 @@ fn main() {
                 }
             }
         }
-        cli::Subcommands::Cd { repository } => {}
+        cli::Subcommands::Open { id, ide } => projects::open(id, ide),
     };
 }

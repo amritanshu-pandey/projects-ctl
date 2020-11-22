@@ -13,6 +13,7 @@ install:
   image: rust:1.23.0
   stage: build
   script:
+    - rustup component add --toolchain beta rustfmt-preview
     - cargo build --release
   artifacts:
     paths:

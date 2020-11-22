@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use crate::config::canonicalise_path;
 use structopt::StructOpt;
 
 #[derive(Debug, PartialEq, StructOpt)]
@@ -17,12 +17,31 @@ pub struct Cli {
 #[structopt(about = "Manage git repos")]
 pub enum Subcommands {
     Add {
-        #[structopt(long)]
         repository: String,
+        #[structopt(long)]
+        remote_url: Option<String>,
+        #[structopt(long, default_value = "origin")]
+        remote_name: String,
+        #[structopt(long)]
+        name: Option<String>,
     },
     Remove {
-        #[structopt(long)]
         repository: String,
+    },
+    List {
+        #[structopt(long)]
+        wide: bool,
+    },
+    Open {
+        #[structopt(short, long)]
+        name: bool,
+        #[structopt(short, long)]
+        id: bool,
+        #[structopt(short, long)]
+        path: bool,
+        value: String,
+        #[structopt(long, env = "PROJECTS_CTL_IDE_PATH", default_value = "code")]
+        ide: String,
     },
 }
 
@@ -32,5 +51,5 @@ pub fn get_cli_args() -> Cli {
 }
 
 pub fn get_config_home() -> String {
-    get_cli_args().config_home
+    canonicalise_path(&get_cli_args().config_home)
 }

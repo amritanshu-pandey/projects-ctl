@@ -1,21 +1,48 @@
 extern crate shellexpand;
 use crate::cli::get_config_home;
-use crate::projects::Projects;
 use crate::util;
 use log;
+extern crate path_absolutize;
+use path_abs::PathAbs;
 use std::fs;
 use std::path::Path;
 
-pub fn ensure_config_dir_exist(directory: &str) -> std::io::Result<()> {
-    let expanded_dir: &str = &shellexpand::tilde(directory);
+pub fn canonicalise_path(path: &str) -> String {
+    let expanded_dir: &str = &shellexpand::tilde(path);
+
     match fs::metadata(expanded_dir) {
         Ok(..) => {
-            log::debug!("Config home directory exist: {}", expanded_dir);
+            let path = match fs::canonicalize(expanded_dir) {
+                Ok(path) => path,
+                Err(..) => panic!("Unable to canonicalise the path: {}", expanded_dir),
+            };
+            path.to_str()
+                .expect("Unable to convert resolved path to string")
+                .to_string()
         }
         Err(..) => {
-            log::debug!("Config home directory doesn't exist: {}", expanded_dir);
-            println!("Creating config 🏠: {}", expanded_dir);
-            fs::create_dir_all(expanded_dir)?;
+            let expanded_dir = match PathAbs::new(expanded_dir) {
+                Ok(path) => path,
+                Err(..) => panic!("Unable to convert normalised path to fs::path"),
+            };
+            expanded_dir
+                .as_path()
+                .to_str()
+                .expect("Unable to convert resolved path to string")
+                .to_string()
+        }
+    }
+}
+
+pub fn ensure_config_dir_exist(directory: &str) -> std::io::Result<()> {
+    match fs::metadata(directory) {
+        Ok(..) => {
+            log::debug!("Config home directory exist: {}", directory);
+        }
+        Err(..) => {
+            log::debug!("Config home directory doesn't exist: {}", directory);
+            println!("Creating config 🏠: {}", directory);
+            fs::create_dir_all(directory)?;
         }
     }
     Ok(())
@@ -70,51 +97,4 @@ pub fn write_config_file(filename: &str, content: &str) {
     };
 
     util::write_file(content.to_string(), config_file.to_string());
-}
-
-pub fn get_all_projects() -> Vec<String> {
-    let content = read_config_file("projects.yaml");
-    let yaml_config: Projects = match serde_yaml::from_str(&content) {
-        Ok(projects) => projects,
-        Err(..) => panic!("Unable to read config file as yaml 💔"),
-    };
-
-    match yaml_config {
-        Projects { projects } => projects,
-        _ => vec![],
-    }
-}
-
-pub fn add_project(name: &str) {
-    let mut projects = get_all_projects();
-
-    if projects.contains(&name.to_string()) {
-        println!("Project already added 🙏")
-    } else {
-        projects.push(name.to_string());
-        let projects = Projects { projects: projects };
-        let content = match serde_yaml::to_string(&projects) {
-            Ok(content) => content,
-            Err(..) => panic!("Unable to get yaml string fot project config"),
-        };
-        write_config_file("projects.yaml", &content);
-        println!("Project added: {} ✔", name);
-    }
-}
-
-pub fn remove_project(name: &str) {
-    let mut projects = get_all_projects();
-
-    if projects.contains(&name.to_string()) {
-        projects.retain(|x| x != name);
-        let projects = Projects { projects: projects };
-        let content = match serde_yaml::to_string(&projects) {
-            Ok(content) => content,
-            Err(..) => panic!("Unable to get yaml string fot project config"),
-        };
-        write_config_file("projects.yaml", &content);
-        println!("Project deleted: {} ✔", name);
-    } else {
-        println!("Project not found: {} ❌", name);
-    }
 }

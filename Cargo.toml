@@ -1,7 +1,7 @@
 [package]
-name = "gitall"
+name = "projectsctl"
 version = "0.1.0"
-authors = ["Amritanshu Pandey <amp.msit@gmail.com>"]
+authors = ["Amritanshu Pandey <email@amritanshu.in>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -13,3 +13,8 @@ env_logger = "0.8.2"
 log = "0.4.11"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
+prettytable-rs = "^0.8"
+git2 = "0.13"
+path-absolutize = "1.0.2"
+path_abs = "0.5.0"
+colored = "2"

@@ -1,4 +1,3 @@
-use std::process::Command;
 mod cli;
 mod config;
 mod projects;
@@ -9,14 +8,49 @@ fn main() {
     let args = cli::get_cli_args();
     let cli_subcommands = args.commands;
 
-    config::ensure_config_dir_exist(&args.config_home).expect(&format!(
-        "Unable to create config home: {}",
-        &args.config_home
-    ));
+    config::ensure_config_dir_exist(&config::canonicalise_path(&args.config_home)).expect(
+        &format!("Unable to create config home: {}", &args.config_home),
+    );
     config::ensure_config_file_exist("projects.yaml").expect("Unable to create empty config file");
 
     match cli_subcommands {
-        cli::Subcommands::Add { repository } => config::add_project(&repository),
-        cli::Subcommands::Remove { repository } => config::remove_project(&repository),
+        cli::Subcommands::Add {
+            repository,
+            remote_url,
+            remote_name,
+            name,
+        } => projects::add_project(
+            &config::canonicalise_path(&repository),
+            remote_url,
+            remote_name,
+            name,
+        ),
+        cli::Subcommands::Remove { repository } => {
+            projects::remove_project(&config::canonicalise_path(&repository))
+        }
+        cli::Subcommands::List { wide } => {
+            if wide {
+                projects::list_repositories(wide);
+            } else {
+                projects::list_repositories(wide);
+            }
+        }
+        cli::Subcommands::Open {
+            id,
+            name,
+            path,
+            value,
+            ide,
+        } => {
+            if id {
+                projects::open_by_id(value, ide);
+            } else if path {
+                projects::open_by_path(value, ide);
+            } else if name {
+                projects::open_by_name(value, ide);
+            } else {
+                projects::open_by_id(value, ide);
+            }
+        }
     };
 }

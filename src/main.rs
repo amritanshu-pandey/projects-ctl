@@ -28,15 +28,29 @@ fn main() {
         cli::Subcommands::Remove { repository } => {
             projects::remove_project(&config::canonicalise_path(&repository))
         }
-        cli::Subcommands::List { repositories, wide } => {
-            if repositories {
-                if wide {
-                    projects::list_repositories();
-                } else {
-                    projects::list_repositories();
-                }
+        cli::Subcommands::List { wide } => {
+            if wide {
+                projects::list_repositories(wide);
+            } else {
+                projects::list_repositories(wide);
             }
         }
-        cli::Subcommands::Open { id, ide } => projects::open(id, ide),
+        cli::Subcommands::Open {
+            id,
+            name,
+            path,
+            value,
+            ide,
+        } => {
+            if id {
+                projects::open_by_id(value, ide);
+            } else if path {
+                projects::open_by_path(value, ide);
+            } else if name {
+                projects::open_by_name(value, ide);
+            } else {
+                projects::open_by_id(value, ide);
+            }
+        }
     };
 }

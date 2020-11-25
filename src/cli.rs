@@ -17,7 +17,6 @@ pub struct Cli {
 #[structopt(about = "Manage git repos")]
 pub enum Subcommands {
     Add {
-        #[structopt(long)]
         repository: String,
         #[structopt(long)]
         remote_url: Option<String>,
@@ -27,17 +26,20 @@ pub enum Subcommands {
         name: Option<String>,
     },
     Remove {
-        #[structopt(long)]
         repository: String,
     },
     List {
         #[structopt(long)]
-        repositories: bool,
-        #[structopt(long)]
         wide: bool,
     },
     Open {
-        id: u64,
+        #[structopt(short, long)]
+        name: bool,
+        #[structopt(short, long)]
+        id: bool,
+        #[structopt(short, long)]
+        path: bool,
+        value: String,
         #[structopt(long, env = "PROJECTS_CTL_IDE_PATH", default_value = "code")]
         ide: String,
     },

@@ -1,4 +1,5 @@
 use crate::config::{read_config_file, write_config_file};
+use colored::*;
 use git2::Repository;
 use prettytable::{cell, format, row, Table};
 use serde::{Deserialize, Serialize};
@@ -166,43 +167,68 @@ pub fn find_git_remote(path: &str, remote_name: String) -> Option<String> {
     Some(remote.url().expect("Unable to find remote URL").to_string())
 }
 
-pub fn list_repositories() {
-    let mut table = Table::new();
-    table.set_format(*format::consts::FORMAT_NO_BORDER);
-    table.set_titles(row!(
-        "Id".to_string(),
-        "Path".to_string(),
-        "Name".to_string(),
-        "Exists".to_string(),
-        "Git".to_string(),
-        "Remote".to_string()
-    ));
-    for project in &get_all_projects() {
-        let remote = match &project.git_remote {
-            Some(remote) => remote,
-            None => "-",
-        };
-        let name = match &project.name {
-            Some(name) => name,
-            None => "-",
-        };
-        table.add_row(row!(
-            project.id,
-            project.path.to_string(),
-            name,
-            check_project_exists(&project.path),
-            check_if_git_enabled(&project.path),
-            remote
+pub fn list_repositories(wide: bool) {
+    if wide {
+        let mut table = Table::new();
+        let mut counter: i32 = 0;
+        table.set_format(*format::consts::FORMAT_NO_BORDER);
+        table.set_titles(row!(
+            "Id".to_string(),
+            "Path".to_string(),
+            "Name".to_string(),
+            "Exists".to_string(),
+            "Git".to_string(),
+            "Remote".to_string()
         ));
-    }
+        for project in &get_all_projects() {
+            counter = counter + 1;
+            let name = match &project.name {
+                Some(name) => name,
+                None => "-",
+            };
+            let remote = match &project.git_remote {
+                Some(remote) => remote,
+                None => "-",
+            };
 
-    println!("\n");
-    table.printstd();
+            table.add_row(row!(
+                project.id.to_string().blue(),
+                project.path.to_string(),
+                name.green(),
+                check_project_exists(&project.path),
+                check_if_git_enabled(&project.path),
+                remote
+            ));
+        }
+        if counter > 0 {
+            println!("\n");
+            table.printstd();
+            println!("\n")
+        }
+    } else {
+        for project in &get_all_projects() {
+            let name = match &project.name {
+                Some(name) => name,
+                None => "-",
+            };
+            println!(
+                "{}: {} ({})",
+                project.id.to_string().blue(),
+                project.path.to_string().italic(),
+                name.green()
+            )
+        }
+    }
 }
 
-pub fn open(id: u64, ide: String) {
-    match find_project_path_by_id(id) {
+pub fn open_by_id(value: String, ide: String) {
+    match find_project_path_by_id(
+        value
+            .parse::<u64>()
+            .expect("Unable to parse the ID as integer"),
+    ) {
         Some(path) => {
+            println!("Path: {}", &ide);
             Command::new(&ide)
                 .arg(&path)
                 .output()
@@ -212,5 +238,54 @@ pub fn open(id: u64, ide: String) {
         None => {
             println!("Project not found ❌");
         }
+    }
+}
+
+pub fn open_by_name(value: String, ide: String) {
+    let mut similar_projects: Vec<Project> = Vec::new();
+    for project in get_all_projects() {
+        match &project.name {
+            Some(proj_name) => {
+                if proj_name.starts_with(&value) {
+                    similar_projects.push(project);
+                }
+            }
+            None => {}
+        };
+    }
+
+    if similar_projects.len() == 1 {
+        Command::new(&ide)
+            .arg(&similar_projects[0].path)
+            .output()
+            .expect("failed to execute process");
+        println!(
+            "Opening project '{}' in program '{}' ✔️",
+            similar_projects[0].path, ide
+        );
+    } else {
+        println!("Project not found ❌");
+    }
+}
+
+pub fn open_by_path(value: String, ide: String) {
+    let mut similar_projects: Vec<Project> = Vec::new();
+    for project in get_all_projects() {
+        if project.path.starts_with(&value) {
+            similar_projects.push(project);
+        }
+    }
+
+    if similar_projects.len() == 1 {
+        Command::new(&ide)
+            .arg(&similar_projects[0].path)
+            .output()
+            .expect("failed to execute process");
+        println!(
+            "Opening project '{}' in program '{}' ✔️",
+            similar_projects[0].path, ide
+        );
+    } else {
+        println!("Project not found ❌");
     }
 }

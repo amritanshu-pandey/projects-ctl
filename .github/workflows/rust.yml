@@ -1,0 +1,30 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: cargo release --verbose
+    - name: Run help
+      run: ./target/release/projectsctl --help
+    - name: Run add
+      run: ./target/release/projectsctl add . --name test
+    - name: Run list
+      run: ./target/release/projectsctl list
+    - name: Run list wide
+      run: ./target/release/projectsctl list --wide
+    - name: Run remove
+      run: ./target/release/projectsctl remove .

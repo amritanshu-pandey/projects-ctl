@@ -28,3 +28,8 @@ jobs:
       run: ./target/release/projectsctl list --wide
     - name: Run remove
       run: ./target/release/projectsctl remove .
+    - name: Store executable as artefact
+        uses: actions/upload-artifact@v2
+        with:
+          name: projectsctl-executable
+          path: target/release/projectsctl

@@ -37,5 +37,5 @@ jobs:
       uses: christophebedard/tag-version-commit@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        version_assertion_command: 'grep -q "\"version\" = \"$version\"" cargo.toml'
+        version_assertion_command: 'grep -q "\"version\" = \"$version\"" Cargo.toml'
         version_tag_prefix: 'v'

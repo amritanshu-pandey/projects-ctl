@@ -33,3 +33,9 @@ jobs:
       with:
         name: projectsctl-executable
         path: target/release/projectsctl
+    - name: Create a tag
+      uses: christophebedard/tag-version-commit@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        version_assertion_command: 'grep -q "\"version\" = \"$version\"" cargo.toml'
+        version_tag_prefix: 'v'

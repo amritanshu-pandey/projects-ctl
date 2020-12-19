@@ -1,6 +1,6 @@
 [package]
 name = "projectsctl"
-version = "0.1.1"
+version = "0.1.0-alpha.1"
 authors = ["Amritanshu Pandey <amp.msit@gmail.com>"]
 edition = "2018"
 

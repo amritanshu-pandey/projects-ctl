@@ -26,20 +26,20 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: pc
-            asset_name: pc-linux-x64.tar.gz
+            artifact_name: projectsctl
+            asset_name: projectsctl-linux-x64.tar.gz
           - os: macos-latest
-            artifact_name: pc
-            asset_name: pc-darwin-x64.tar.gz
+            artifact_name: projectsctl
+            asset_name: projectsctl-darwin-x64.tar.gz
           - os: windows-latest
-            artifact_name: pc.exe
-            asset_name: pc-win-x64.tar.gz
+            artifact_name: projectsctl.exe
+            asset_name: projectsctl-win-x64.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
     - name: checkout the source code
       uses: actions/checkout@v2
     - name: build (release)
-      run: cargo build --verbose --release
+      run: cargo build --release
     - name: compress
       uses: master-atul/tar-action@v1.0.2
       with:

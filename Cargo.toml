@@ -2,7 +2,7 @@
 name = "projectsctl"
 version = "0.1.1"
 authors = ["Amritanshu Pandey <email@amritanshu.in>"]
-edition = "2020"
+edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

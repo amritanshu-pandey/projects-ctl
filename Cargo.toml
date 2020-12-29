@@ -1,8 +1,8 @@
 [package]
 name = "projectsctl"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Amritanshu Pandey <email@amritanshu.in>"]
-edition = "2018"
+edition = "2020"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

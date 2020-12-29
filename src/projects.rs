@@ -221,19 +221,23 @@ pub fn list_repositories(wide: bool) {
     }
 }
 
-pub fn open_by_id(value: String, ide: String) {
+pub fn open_by_id(value: String, ide: String, show: bool) {
     match find_project_path_by_id(
         value
             .parse::<u64>()
             .expect("Unable to parse the ID as integer"),
     ) {
         Some(path) => {
-            println!("Path: {}", &ide);
-            Command::new(&ide)
-                .arg(&path)
-                .output()
-                .expect("failed to execute process");
-            println!("Opening project '{}' in program '{}' ✔️", path, ide);
+            if show {
+                println!("{}", path);
+            } else {
+                println!("Path: {}", &path);
+                Command::new(&ide)
+                    .arg(&path)
+                    .output()
+                    .expect("failed to execute process");
+                println!("Opening project '{}' in program '{}' ✔️", path, ide);
+            }
         }
         None => {
             println!("Project not found ❌");
@@ -241,7 +245,7 @@ pub fn open_by_id(value: String, ide: String) {
     }
 }
 
-pub fn open_by_name(value: String, ide: String) {
+pub fn open_by_name(value: String, ide: String, show: bool) {
     let mut similar_projects: Vec<Project> = Vec::new();
     for project in get_all_projects() {
         match &project.name {
@@ -255,20 +259,24 @@ pub fn open_by_name(value: String, ide: String) {
     }
 
     if similar_projects.len() == 1 {
-        Command::new(&ide)
-            .arg(&similar_projects[0].path)
-            .output()
-            .expect("failed to execute process");
-        println!(
-            "Opening project '{}' in program '{}' ✔️",
-            similar_projects[0].path, ide
-        );
+        if show {
+            println!("{}", similar_projects[0].path)
+        } else {
+            Command::new(&ide)
+                .arg(&similar_projects[0].path)
+                .output()
+                .expect("failed to execute process");
+            println!(
+                "Opening project '{}' in program '{}' ✔️",
+                similar_projects[0].path, ide
+            );
+        }
     } else {
         println!("Project not found ❌");
     }
 }
 
-pub fn open_by_path(value: String, ide: String) {
+pub fn open_by_path(value: String, ide: String, show: bool) {
     let mut similar_projects: Vec<Project> = Vec::new();
     for project in get_all_projects() {
         if project.path.starts_with(&value) {
@@ -277,14 +285,18 @@ pub fn open_by_path(value: String, ide: String) {
     }
 
     if similar_projects.len() == 1 {
-        Command::new(&ide)
-            .arg(&similar_projects[0].path)
-            .output()
-            .expect("failed to execute process");
-        println!(
-            "Opening project '{}' in program '{}' ✔️",
-            similar_projects[0].path, ide
-        );
+        if show {
+            println!("{}", similar_projects[0].path)
+        } else {
+            Command::new(&ide)
+                .arg(&similar_projects[0].path)
+                .output()
+                .expect("failed to execute process");
+            println!(
+                "Opening project '{}' in program '{}' ✔️",
+                similar_projects[0].path, ide
+            );
+        }
     } else {
         println!("Project not found ❌");
     }

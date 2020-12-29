@@ -41,15 +41,16 @@ fn main() {
             path,
             value,
             ide,
+            show,
         } => {
             if id {
-                projects::open_by_id(value, ide);
+                projects::open_by_id(value, ide, show);
             } else if path {
-                projects::open_by_path(value, ide);
+                projects::open_by_path(value, ide, show);
             } else if name {
-                projects::open_by_name(value, ide);
+                projects::open_by_name(value, ide, show);
             } else {
-                projects::open_by_id(value, ide);
+                projects::open_by_id(value, ide, show);
             }
         }
     };

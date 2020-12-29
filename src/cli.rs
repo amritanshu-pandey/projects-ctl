@@ -33,15 +33,17 @@ pub enum Subcommands {
         wide: bool,
     },
     Open {
-        #[structopt(short, long)]
+        #[structopt(short, long, help = "Find project by name")]
         name: bool,
-        #[structopt(short, long)]
+        #[structopt(short, long, help = "Find project by ID")]
         id: bool,
-        #[structopt(short, long)]
+        #[structopt(short, long, help = "Find project by path")]
         path: bool,
         value: String,
         #[structopt(long, env = "PROJECTS_CTL_IDE_PATH", default_value = "code")]
         ide: String,
+        #[structopt(short, long, help = "Print path on stdout")]
+        show: bool,
     },
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "projectsctl"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Amritanshu Pandey <email@amritanshu.in>"]
 edition = "2018"
 
@@ -13,8 +13,8 @@ env_logger = "0.8.2"
 log = "0.4.11"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
-prettytable-rs = "^0.8"
-git2 = "0.13"
+prettytable-rs = "0.10"
+git2 = { version = "0.13", default-features = false }
 path-absolutize = "1.0.2"
 path_abs = "0.5.0"
 colored = "2"

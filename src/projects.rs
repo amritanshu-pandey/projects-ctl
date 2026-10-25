@@ -17,6 +17,9 @@ pub struct Project {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Projects {
     pub projects: Vec<Project>,
+    // Highest ID ever handed out; missing in configs written before 0.2.0
+    #[serde(default)]
+    pub last_id: u64,
 }
 
 pub enum Lookup {
@@ -26,29 +29,29 @@ pub enum Lookup {
     Path,
 }
 
-pub fn get_all_projects() -> Vec<Project> {
+fn load_projects() -> Projects {
     let content = read_config_file("projects.yaml");
-    let yaml_config: Projects = match serde_yaml::from_str(&content) {
+    match serde_yaml::from_str(&content) {
         Ok(projects) => projects,
         Err(..) => panic!("Unable to read config file as yaml 💔"),
-    };
-
-    match yaml_config {
-        Projects { projects } => projects,
     }
 }
 
-fn save_projects(projects: Vec<Project>) -> Result<(), String> {
-    let projects = Projects { projects: projects };
+pub fn get_all_projects() -> Vec<Project> {
+    load_projects().projects
+}
+
+fn save_projects(projects: Projects) -> Result<(), String> {
     let content = serde_yaml::to_string(&projects)
         .map_err(|e| format!("Unable to get yaml string for project config: {}", e))?;
     write_config_file("projects.yaml", &content);
     Ok(())
 }
 
-// IDs only ever grow, so an ID never silently starts pointing at a different project
-fn next_id(projects: &[Project]) -> u64 {
-    projects.iter().map(|p| p.id).max().map_or(1, |id| id + 1)
+// IDs are never reused, so an ID never silently starts pointing at a different project
+fn next_id(config: &Projects) -> u64 {
+    let highest = config.projects.iter().map(|p| p.id).max().unwrap_or(0);
+    highest.max(config.last_id) + 1
 }
 
 pub fn add_project(
@@ -61,7 +64,8 @@ pub fn add_project(
         return Err(format!("Path does not exist: {}", path));
     }
 
-    let mut projects = get_all_projects();
+    let mut config = load_projects();
+    let projects = &config.projects;
 
     if projects.iter().any(|p| p.path == path) {
         return Err(format!("Project with same path already added: {}", path));
@@ -81,22 +85,23 @@ pub fn add_project(
         path: path.to_string(),
         git_remote: remote_url,
         name: name,
-        id: next_id(&projects),
+        id: next_id(&config),
     };
-    projects.push(project);
-    save_projects(projects)?;
+    config.last_id = project.id;
+    config.projects.push(project);
+    save_projects(config)?;
     println!("Project added: {} ✔️", path);
     Ok(())
 }
 
 pub fn remove_project(name: &str) -> Result<(), String> {
-    let mut projects = get_all_projects();
+    let mut config = load_projects();
 
-    if !projects.iter().any(|p| p.path == name) {
+    if !config.projects.iter().any(|p| p.path == name) {
         return Err(format!("Project not found: {}", name));
     }
-    projects.retain(|x| x.path != name);
-    save_projects(projects)?;
+    config.projects.retain(|x| x.path != name);
+    save_projects(config)?;
     println!("Project deleted: {} ✔️", name);
     Ok(())
 }

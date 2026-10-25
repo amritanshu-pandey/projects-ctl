@@ -13,7 +13,7 @@ fn main() {
     );
     config::ensure_config_file_exist("projects.yaml").expect("Unable to create empty config file");
 
-    match cli_subcommands {
+    let result = match cli_subcommands {
         cli::Subcommands::Add {
             repository,
             remote_url,
@@ -29,11 +29,8 @@ fn main() {
             projects::remove_project(&config::canonicalise_path(&repository))
         }
         cli::Subcommands::List { wide } => {
-            if wide {
-                projects::list_repositories(wide);
-            } else {
-                projects::list_repositories(wide);
-            }
+            projects::list_repositories(wide);
+            Ok(())
         }
         cli::Subcommands::Open {
             id,
@@ -43,15 +40,21 @@ fn main() {
             ide,
             show,
         } => {
-            if id {
-                projects::open_by_id(value, ide, show);
+            let lookup = if id {
+                projects::Lookup::Id
             } else if path {
-                projects::open_by_path(value, ide, show);
+                projects::Lookup::Path
             } else if name {
-                projects::open_by_name(value, ide, show);
+                projects::Lookup::Name
             } else {
-                projects::open_by_id(value, ide, show);
-            }
+                projects::Lookup::Auto
+            };
+            projects::open_project(lookup, &value, &ide, show)
         }
     };
+
+    if let Err(message) = result {
+        eprintln!("{} ❌", message);
+        std::process::exit(1);
+    }
 }

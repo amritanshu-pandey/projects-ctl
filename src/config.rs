@@ -41,7 +41,7 @@ pub fn ensure_config_dir_exist(directory: &str) -> std::io::Result<()> {
         }
         Err(..) => {
             log::debug!("Config home directory doesn't exist: {}", directory);
-            println!("Creating config 🏠: {}", directory);
+            eprintln!("Creating config 🏠: {}", directory);
             fs::create_dir_all(directory)?;
         }
     }
@@ -64,7 +64,7 @@ pub fn ensure_config_file_exist(filename: &str) -> std::io::Result<()> {
         }
         Err(..) => {
             log::debug!("Config file doesn't exist: {}", config_file);
-            println!("Creating config 🗃: {}", config_file);
+            eprintln!("Creating config 🗃: {}", config_file);
             fs::File::create(config_file)?;
             fs::write(config_file, b"---\nprojects: []\n")?;
         }

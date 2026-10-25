@@ -1,11 +1,9 @@
-use crate::config::{read_config_file, write_config_file};
+use crate::config::{canonicalise_path, read_config_file, write_config_file};
 use colored::*;
 use git2::Repository;
 use prettytable::{cell, format, row, Table};
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::DefaultHasher;
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::process::Command;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
@@ -21,6 +19,13 @@ pub struct Projects {
     pub projects: Vec<Project>,
 }
 
+pub enum Lookup {
+    Auto,
+    Id,
+    Name,
+    Path,
+}
+
 pub fn get_all_projects() -> Vec<Project> {
     let content = read_config_file("projects.yaml");
     let yaml_config: Projects = match serde_yaml::from_str(&content) {
@@ -33,43 +38,17 @@ pub fn get_all_projects() -> Vec<Project> {
     }
 }
 
-pub fn find_project(path: String) -> bool {
-    for project in get_all_projects() {
-        if project.path == path {
-            return true;
-        }
-    }
-
-    false
+fn save_projects(projects: Vec<Project>) -> Result<(), String> {
+    let projects = Projects { projects: projects };
+    let content = serde_yaml::to_string(&projects)
+        .map_err(|e| format!("Unable to get yaml string for project config: {}", e))?;
+    write_config_file("projects.yaml", &content);
+    Ok(())
 }
 
-pub fn find_project_by_name(name: String) -> bool {
-    for project in get_all_projects() {
-        match project.name {
-            Some(proj_name) => {
-                if proj_name == name {
-                    return true;
-                }
-            }
-            None => {}
-        }
-    }
-    return false;
-}
-
-pub fn find_project_path_by_id(id: u64) -> Option<String> {
-    for project in get_all_projects() {
-        if project.id == id {
-            return Some(project.path);
-        }
-    }
-    return None;
-}
-
-fn find_hash(name: String) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    name.hash(&mut hasher);
-    hasher.finish() / 1000000000000000
+// IDs only ever grow, so an ID never silently starts pointing at a different project
+fn next_id(projects: &[Project]) -> u64 {
+    projects.iter().map(|p| p.id).max().map_or(1, |id| id + 1)
 }
 
 pub fn add_project(
@@ -77,67 +56,49 @@ pub fn add_project(
     remote_url: Option<String>,
     remote_name: String,
     name: Option<String>,
-) {
-    let mut projects = get_all_projects();
-    let mut remote_url = remote_url;
+) -> Result<(), String> {
+    if fs::metadata(path).is_err() {
+        return Err(format!("Path does not exist: {}", path));
+    }
 
-    match remote_url {
-        Some(..) => {}
-        None => {
-            remote_url = match Repository::open(path) {
-                Ok(..) => {
-                    Some(find_git_remote(path, remote_name).expect("Unable to find git remote"))
-                }
-                Err(..) => None,
-            };
+    let mut projects = get_all_projects();
+
+    if projects.iter().any(|p| p.path == path) {
+        return Err(format!("Project with same path already added: {}", path));
+    }
+    if let Some(proj_name) = &name {
+        if projects.iter().any(|p| p.name.as_ref() == Some(proj_name)) {
+            return Err(format!(
+                "Project with same name already added: {}",
+                proj_name
+            ));
         }
     }
 
-    if find_project(path.to_string()) {
-        println!("Project with same path already added 🙏")
-    } else {
-        match &name {
-            Some(proj_name) => {
-                if find_project_by_name(proj_name.to_string()) {
-                    println!("Project with same name already added 🙏");
-                    return ();
-                }
-            }
-            None => {}
-        };
+    let remote_url = remote_url.or_else(|| find_git_remote(path, &remote_name));
 
-        let project: Project = Project {
-            path: path.to_string(),
-            git_remote: remote_url,
-            name: name,
-            id: find_hash(path.to_string()),
-        };
-        projects.push(project);
-        let projects = Projects { projects: projects };
-        let content = match serde_yaml::to_string(&projects) {
-            Ok(content) => content,
-            Err(..) => panic!("Unable to get yaml string fot project config"),
-        };
-        write_config_file("projects.yaml", &content);
-        println!("Project added: {} ✔️", path);
-    }
+    let project: Project = Project {
+        path: path.to_string(),
+        git_remote: remote_url,
+        name: name,
+        id: next_id(&projects),
+    };
+    projects.push(project);
+    save_projects(projects)?;
+    println!("Project added: {} ✔️", path);
+    Ok(())
 }
 
-pub fn remove_project(name: &str) {
+pub fn remove_project(name: &str) -> Result<(), String> {
     let mut projects = get_all_projects();
 
-    if find_project(name.to_string()) {
-        projects.retain(|x| x.path != name);
-        let projects = Projects { projects: projects };
-        let content = match serde_yaml::to_string(&projects) {
-            Ok(content) => content,
-            Err(..) => panic!("Unable to get yaml string fot project config"),
-        };
-        write_config_file("projects.yaml", &content);
-        println!("Project deleted: {} ✔️", name);
-    } else {
-        println!("Project not found: {} 💔", name);
+    if !projects.iter().any(|p| p.path == name) {
+        return Err(format!("Project not found: {}", name));
     }
+    projects.retain(|x| x.path != name);
+    save_projects(projects)?;
+    println!("Project deleted: {} ✔️", name);
+    Ok(())
 }
 
 pub fn check_project_exists(path: &str) -> String {
@@ -154,17 +115,19 @@ pub fn check_if_git_enabled(path: &str) -> String {
     }
 }
 
-pub fn find_git_remote(path: &str, remote_name: String) -> Option<String> {
-    let repo = match Repository::open(path) {
-        Ok(repo) => repo,
-        Err(..) => panic!("Not a git repo: {}", path),
+pub fn find_git_remote(path: &str, remote_name: &str) -> Option<String> {
+    let repo = Repository::open(path).ok()?;
+    let remote_url = match repo.find_remote(remote_name) {
+        Ok(remote) => remote.url().map(|url| url.to_string()),
+        Err(..) => {
+            eprintln!(
+                "Git remote '{}' not found in {}, adding without a remote",
+                remote_name, path
+            );
+            None
+        }
     };
-
-    let remote = repo
-        .find_remote(&remote_name)
-        .expect(&format!("Unable to find remote {}", remote_name));
-
-    Some(remote.url().expect("Unable to find remote URL").to_string())
+    remote_url
 }
 
 pub fn list_repositories(wide: bool) {
@@ -221,83 +184,97 @@ pub fn list_repositories(wide: bool) {
     }
 }
 
-pub fn open_by_id(value: String, ide: String, show: bool) {
-    match find_project_path_by_id(
-        value
-            .parse::<u64>()
-            .expect("Unable to parse the ID as integer"),
-    ) {
-        Some(path) => {
-            if show {
-                println!("{}", path);
-            } else {
-                println!("Path: {}", &path);
-                Command::new(&ide)
-                    .arg(&path)
-                    .output()
-                    .expect("failed to execute process");
-                println!("Opening project '{}' in program '{}' ✔️", path, ide);
+// An exact match wins over prefix matches, so "api" can still be opened when "api-v2" exists
+fn find_matches<'a, F>(projects: &'a [Project], value: &str, field: F) -> Vec<&'a Project>
+where
+    F: Fn(&Project) -> Option<&str>,
+{
+    let exact: Vec<&Project> = projects
+        .iter()
+        .filter(|p| field(p) == Some(value))
+        .collect();
+    if !exact.is_empty() {
+        return exact;
+    }
+    projects
+        .iter()
+        .filter(|p| field(p).map_or(false, |f| f.starts_with(value)))
+        .collect()
+}
+
+fn find_by_id<'a>(projects: &'a [Project], value: &str) -> Vec<&'a Project> {
+    match value.parse::<u64>() {
+        Ok(id) => projects.iter().filter(|p| p.id == id).collect(),
+        Err(..) => Vec::new(),
+    }
+}
+
+fn find_by_name<'a>(projects: &'a [Project], value: &str) -> Vec<&'a Project> {
+    find_matches(projects, value, |p| p.name.as_deref())
+}
+
+fn find_by_path<'a>(projects: &'a [Project], value: &str) -> Vec<&'a Project> {
+    find_matches(projects, &canonicalise_path(value), |p| {
+        Some(p.path.as_str())
+    })
+}
+
+pub fn open_project(lookup: Lookup, value: &str, ide: &str, show: bool) -> Result<(), String> {
+    let projects = get_all_projects();
+
+    let candidates = match lookup {
+        Lookup::Id => {
+            if value.parse::<u64>().is_err() {
+                return Err(format!("Not a valid project ID: {}", value));
             }
+            find_by_id(&projects, value)
         }
-        None => {
-            println!("Project not found ❌");
+        Lookup::Name => find_by_name(&projects, value),
+        Lookup::Path => find_by_path(&projects, value),
+        Lookup::Auto => {
+            let mut candidates = find_by_id(&projects, value);
+            if candidates.is_empty() {
+                candidates = find_by_name(&projects, value);
+            }
+            if candidates.is_empty() {
+                candidates = find_by_path(&projects, value);
+            }
+            candidates
+        }
+    };
+
+    match candidates.as_slice() {
+        [] => Err(format!("Project not found: {}", value)),
+        [project] => launch(project, ide, show),
+        _ => {
+            let mut message = format!("'{}' matches multiple projects:", value);
+            for project in candidates {
+                message.push_str(&format!(
+                    "\n  {}: {} ({})",
+                    project.id,
+                    project.path,
+                    project.name.as_deref().unwrap_or("-")
+                ));
+            }
+            Err(message)
         }
     }
 }
 
-pub fn open_by_name(value: String, ide: String, show: bool) {
-    let mut similar_projects: Vec<Project> = Vec::new();
-    for project in get_all_projects() {
-        match &project.name {
-            Some(proj_name) => {
-                if proj_name.starts_with(&value) {
-                    similar_projects.push(project);
-                }
-            }
-            None => {}
-        };
+fn launch(project: &Project, ide: &str, show: bool) -> Result<(), String> {
+    if show {
+        println!("{}", project.path);
+        return Ok(());
     }
 
-    if similar_projects.len() == 1 {
-        if show {
-            println!("{}", similar_projects[0].path)
-        } else {
-            Command::new(&ide)
-                .arg(&similar_projects[0].path)
-                .output()
-                .expect("failed to execute process");
-            println!(
-                "Opening project '{}' in program '{}' ✔️",
-                similar_projects[0].path, ide
-            );
-        }
-    } else {
-        println!("Project not found ❌");
+    println!("Opening project '{}' in program '{}'", project.path, ide);
+    // status() inherits the terminal, so terminal editors like vim work too
+    let status = Command::new(ide)
+        .arg(&project.path)
+        .status()
+        .map_err(|e| format!("Unable to run '{}': {}", ide, e))?;
+    if !status.success() {
+        return Err(format!("'{}' exited with {}", ide, status));
     }
-}
-
-pub fn open_by_path(value: String, ide: String, show: bool) {
-    let mut similar_projects: Vec<Project> = Vec::new();
-    for project in get_all_projects() {
-        if project.path.starts_with(&value) {
-            similar_projects.push(project);
-        }
-    }
-
-    if similar_projects.len() == 1 {
-        if show {
-            println!("{}", similar_projects[0].path)
-        } else {
-            Command::new(&ide)
-                .arg(&similar_projects[0].path)
-                .output()
-                .expect("failed to execute process");
-            println!(
-                "Opening project '{}' in program '{}' ✔️",
-                similar_projects[0].path, ide
-            );
-        }
-    } else {
-        println!("Project not found ❌");
-    }
+    Ok(())
 }

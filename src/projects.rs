@@ -1,7 +1,7 @@
 use crate::config::{canonicalise_path, read_config_file, write_config_file};
 use colored::*;
 use git2::Repository;
-use prettytable::{cell, format, row, Table};
+use prettytable::{format, row, Table};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::process::Command;
